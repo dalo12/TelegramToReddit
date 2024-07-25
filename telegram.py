@@ -10,6 +10,11 @@ load_dotenv()
 api_id = os.getenv("TELEGRAM_API_ID")
 api_hash = os.getenv("TELEGRAM_API_HASH")
 
-print(api_id)
-print(api_hash)
+async def main(chat_name, limit):
+    async with TelegramClient(session_name, api_id, api_hash) as client:
+        chat_info = await client.get_entity(chat_name)
+        messages = await client.get_messages(entity=chat_info, limit=limit)
+        return ({"messages": messages, "channel": chat_info})
+
+
 
