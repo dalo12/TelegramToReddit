@@ -1,2 +1,2 @@
-channel_name="Lexie Liu • 刘柏辛"
-session_name="channel_session"
+channel_name="https://t.me/lexieliusource"
+session_name="user_session"
