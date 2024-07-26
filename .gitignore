@@ -1,3 +1,6 @@
+# Everything in the media directory
+media/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -163,6 +166,3 @@ cython_debug/
 
 # Session files
 *.session
-
-# Everything in the media directory
-media/

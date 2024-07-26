@@ -54,20 +54,24 @@ async def downloadMessagesFromTelegram():
     print(f"Downloading messages from Telegram channel {channel_name}")
     messages = history.messages
 
-    downloadMedia(messages)
+    await downloadMedia(messages)
 
-def downloadMedia(messages):
+async def downloadMedia(messages):
     print("Downloading messages media")
     for message in messages:
         date_string = formatDate(message.date)
         message_text = extractEnglishWords(message.message)
         message_text = formatText(message_text, date_string)
-        print(message_text)
         
-        #createMediaFolder(date_string)
-        #createMessageFile(message.id, date_string, message_text)
+        directory_name = createMediaFolder(date_string)
+        createMessageTextFile(directory_name, message.id, message_text)
+
+        print("Downloading photo or video")
+        if message.photo or message.video:
+            file_path = await client.download_media(message, directory_name)
 
 def createMediaFolder(dir_name):
+    print("Creating corresponding media directory")
     # Define the name of the subdirectory
     subdirectory_name = f"media/{dir_name}"
 
@@ -80,12 +84,12 @@ def createMediaFolder(dir_name):
     # Create the new subdirectory
     os.makedirs(subdirectory_path, exist_ok=True)
 
-def createMessageFile(file_name, dir_name, text):
-    subdirectory_name = f"media/{dir_name}"
-    current_directory = os.getcwd()
-    subdirectory_path = os.path.join(current_directory, subdirectory_name)
+    return f"{subdirectory_path}"
 
-    with open(f'{subdirectory_path}/{file_name}.txt', 'w') as file:
+def createMessageTextFile(dir_name, file_name, text):
+    print("Creating message file")
+
+    with open(f'{dir_name}/{file_name}.txt', 'w') as file:
         file.write(text)
 
 def formatDate(date):
@@ -115,8 +119,6 @@ def formatText(text, date):
     return_text = f"{date[:-5]} - {return_text}"
 
     return return_text
-    
-
 
 # Run the main function using the event loop
 if __name__ == "__main__":
