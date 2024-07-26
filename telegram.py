@@ -1,10 +1,12 @@
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
 from telethon.tl.functions.messages import GetHistoryRequest
-from telethon.tl.types import PeerChannel
+from telethon.tl.types import InputPeerChannel, PeerChannel
 from dotenv import load_dotenv
 import os
 import config as Config
+from datetime import datetime
+import warnings
 
 # Unused
 import json
@@ -12,6 +14,9 @@ import asyncio
 from pathlib import Path
 
 load_dotenv()
+
+# Suppress specific warning
+warnings.filterwarnings("ignore", category=UserWarning, message=".*the session already had an authorized user.*")
 
 api_id = os.getenv("TELEGRAM_API_ID")
 api_hash = os.getenv("TELEGRAM_API_HASH")
@@ -21,7 +26,16 @@ channel_name = Config.channel_name
 
 client = TelegramClient(session_name, api_id, api_hash)
 
-async def main():
+def main():
+    now = datetime.now()
+    now_formatted = now.strftime("%Y.%m.%d.%H.%M")    
+
+    createMediaFolder(now_formatted)
+
+    #with client:
+    #    client.loop.run_until_complete(downloadFromTelegram())
+
+async def downloadFromTelegram():
     await client.start(phone_number)
 
     # Ensure you're authorized
@@ -50,8 +64,22 @@ async def main():
     messages = history.messages
 
     for message in messages:
-        client.download_media(message)
         print(message.message)
+        if message.media:
+            file_path = await client.download_media(message)
 
-with client:
-    client.loop.run_until_complete(main())
+def createMediaFolder(dir_name):
+    # Define the name of the subdirectory
+    subdirectory_name = f"media/{dir_name}"
+
+    # Get the current working directory
+    current_directory = os.getcwd()
+
+    # Construct the full path for the new subdirectory
+    subdirectory_path = os.path.join(current_directory, subdirectory_name)
+
+    # Create the new subdirectory
+    os.makedirs(subdirectory_path, exist_ok=True)
+
+
+main()
