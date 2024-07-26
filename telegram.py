@@ -7,11 +7,7 @@ import os
 import config as Config
 from datetime import datetime
 import warnings
-
-# Unused
-import json
-import asyncio
-from pathlib import Path
+import re
 
 load_dotenv()
 
@@ -23,19 +19,13 @@ api_hash = os.getenv("TELEGRAM_API_HASH")
 phone_number = os.getenv("PHONE_NUM")
 session_name = Config.session_name
 channel_name = Config.channel_name
-
 client = TelegramClient(session_name, api_id, api_hash)
 
-def main():
-    now = datetime.now()
-    now_formatted = now.strftime("%Y.%m.%d.%H.%M")    
+async def main():
+    await downloadMessagesFromTelegram()
 
-    createMediaFolder(now_formatted)
-
-    #with client:
-    #    client.loop.run_until_complete(downloadFromTelegram())
-
-async def downloadFromTelegram():
+async def downloadMessagesFromTelegram():
+    print("Starting connection")
     await client.start(phone_number)
 
     # Ensure you're authorized
@@ -45,6 +35,7 @@ async def downloadFromTelegram():
             await client.sign_in(phone_number, input("Enter the code: "))
         except SessionPasswordNeededError:
             await client.sign_in(password=input("Password: "))
+    print("User authorized")
 
     # Get the channel entity
     channel = await client.get_entity(channel_name)
@@ -60,13 +51,21 @@ async def downloadFromTelegram():
         add_offset=0,
         hash=0
     ))
-
+    print(f"Downloading messages from Telegram channel {channel_name}")
     messages = history.messages
 
+    downloadMedia(messages)
+
+def downloadMedia(messages):
+    print("Downloading messages media")
     for message in messages:
-        print(message.message)
-        if message.media:
-            file_path = await client.download_media(message)
+        date_string = formatDate(message.date)
+        message_text = extractEnglishWords(message.message)
+        message_text = formatText(message_text, date_string)
+        print(message_text)
+        
+        #createMediaFolder(date_string)
+        #createMessageFile(message.id, date_string, message_text)
 
 def createMediaFolder(dir_name):
     # Define the name of the subdirectory
@@ -81,5 +80,45 @@ def createMediaFolder(dir_name):
     # Create the new subdirectory
     os.makedirs(subdirectory_path, exist_ok=True)
 
+def createMessageFile(file_name, dir_name, text):
+    subdirectory_name = f"media/{dir_name}"
+    current_directory = os.getcwd()
+    subdirectory_path = os.path.join(current_directory, subdirectory_name)
 
-main()
+    with open(f'{subdirectory_path}/{file_name}.txt', 'w') as file:
+        file.write(text)
+
+def formatDate(date):
+    date_format = "%Y.%m.%d.%H%M"
+    date_string = date.strftime(date_format)
+    return date_string
+
+def extractEnglishWords(text):
+    # Regular expression pattern for matching English words
+    pattern = r'\b[a-zA-Z]+\b'
+    
+    # Find all English words using the pattern
+    english_words = re.findall(pattern, text)
+    
+    english_words = ' '.join(english_words)
+    return english_words
+
+# Only for Lexie Liu's Telegram channel
+def formatText(text, date):
+    words = text.split()
+    
+    if len(words) <= 2:
+        return ''
+
+    words = words[1:-1]
+    return_text = ' '.join(words)
+    return_text = f"{date[:-5]} - {return_text}"
+
+    return return_text
+    
+
+
+# Run the main function using the event loop
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
